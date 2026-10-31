@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Informasi Layanan BK</title>
+<style>
+:root{--navy:#173b57;--blue:#286b8b;--teal:#2a9d8f;--bg:#f3f7fa;--ink:#203040;--muted:#64748b;--line:#dce5ec;--white:#fff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:9px;padding:10px 14px;background:var(--blue);color:white;font-weight:600}button.secondary{background:#e7eef3;color:var(--navy)}button.danger{background:#b94a48}
+header{background:linear-gradient(120deg,var(--navy),var(--blue));color:#fff;padding:22px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:13px;background:#ffffff24;display:grid;place-items:center;font-size:24px}.brand h1{font-size:19px;margin:0}.brand p{margin:4px 0 0;font-size:12px;color:#dcebf4}
+main{max-width:1180px;margin:28px auto;padding:0 18px}.login{max-width:460px;margin:50px auto;background:white;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 10px 30px #173b5710}.login h2{margin-top:0}.hint{font-size:13px;color:var(--muted);line-height:1.5}
+.field{display:flex;flex-direction:column;gap:6px;margin:14px 0}.field label{font-size:13px;font-weight:700;color:#425466}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px;background:white;color:var(--ink)}.field textarea{min-height:90px;resize:vertical}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:22px}.sidebar,.panel,.stat{background:white;border:1px solid var(--line);border-radius:15px}.sidebar{padding:14px;height:max-content}.navbtn{display:block;width:100%;text-align:left;background:transparent;color:#425466;margin:3px 0}.navbtn.active,.navbtn:hover{background:#eaf3f7;color:var(--navy)}.content{min-width:0}.welcome{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}.welcome h2{margin:0;font-size:24px}.welcome p{margin:6px 0 0;color:var(--muted);font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:18px}.stat{padding:17px}.stat span{font-size:12px;color:var(--muted)}.stat strong{display:block;font-size:25px;margin-top:8px;color:var(--navy)}.panel{padding:20px;margin-bottom:16px}.panel h3{margin:0 0 14px;font-size:17px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row .field{flex:1;min-width:180px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:#526476;background:#f7fafc}.tag{display:inline-block;background:#e5f5ef;color:#207b66;padding:4px 8px;border-radius:99px;font-size:11px;font-weight:700}.empty{padding:20px;text-align:center;color:var(--muted)}.notice{padding:12px 14px;border-radius:10px;background:#fff8e6;color:#76551a;font-size:13px;line-height:1.5;margin:12px 0}.small{font-size:12px;color:var(--muted)}footer{text-align:center;padding:20px;color:var(--muted);font-size:12px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.sidebar{display:flex;overflow:auto;gap:5px}.navbtn{white-space:nowrap;width:auto}.stats{grid-template-columns:1fr}.welcome h2{font-size:21px}table{display:block;overflow-x:auto}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="logo">☘</div><div><h1>Sistem Informasi Layanan BK</h1><p>Layanan Bimbingan dan Konseling Berbasis Web</p></div></div><div id="headerUser"></div></header>
+<main id="app"></main>
+<footer>Prototype pembelajaran • Gunakan data contoh, bukan data konseling nyata.</footer>
+<script>
+const app=document.getElementById('app');
+const roles={
+ 'Siswa':['Dashboard','Ajukan Konseling','Jadwal Saya','Notifikasi'],
+ 'Guru BK':['Dashboard','Data Siswa','Permintaan Konseling','Jadwal','Catatan Konseling','Kasus & Tindak Lanjut','Laporan','Privasi'],
+ 'Wali Kelas':['Dashboard','Rujukan Siswa','Informasi Relevan'],
+ 'Kepala Sekolah':['Dashboard','Laporan'],
+ 'Orang Tua':['Dashboard','Informasi Perkembangan']
+};
+let user=null, active='Dashboard';
+let requests=[], schedules=[], notes=[], students=[
+ {name:'Alya Putri',kelas:'VIII A',id:'S-001'},
+ {name:'Raka Pratama',kelas:'IX B',id:'S-002'},
+ {name:'Nadia Safitri',kelas:'VII C',id:'S-003'}
+], notices=[];
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function login(){app.innerHTML=`<section class="login"><h2>Masuk ke Sistem</h2><p class="hint">Pilih peran untuk mencoba prototipe. Sistem ini belum menggunakan server atau penyimpanan database.</p><div class="field"><label>Nama pengguna</label><input id="name" placeholder="Contoh: Firnanda" value="Pengguna Demo"></div><div class="field"><label>Masuk sebagai</label><select id="role">${Object.keys(roles).map(r=>`<option>${r}</option>`).join('')}</select></div><button style="width:100%" onclick="doLogin()">Masuk</button><div class="notice">Kerahasiaan penting: jangan memasukkan nama asli siswa, diagnosis, atau catatan konseling sensitif ke prototipe ini.</div></section>`;document.getElementById('headerUser').innerHTML=''}
+function doLogin(){user={name:document.getElementById('name').value.trim()||'Pengguna Demo',role:document.getElementById('role').value};active='Dashboard';render()}
+function logout(){user=null;login()}
+function render(){if(!user)return login();document.getElementById('headerUser').innerHTML=`<span style="font-size:13px;margin-right:10px">${esc(user.name)} · ${esc(user.role)}</span><button class="secondary" onclick="logout()">Keluar</button>`;
+app.innerHTML=`<div class="layout"><aside class="sidebar">${roles[user.role].map(n=>`<button class="navbtn ${active===n?'active':''}" onclick="go('${n}')">${n}</button>`).join('')}</aside><section class="content"><div class="welcome"><div><h2>${active}</h2><p>Kelola layanan BK dengan lebih terstruktur.</p></div><span class="tag">Mode Demo</span></div>${page()}</section></div>`}
+function go(n){active=n;render()}
+function stats(){return `<div class="stats"><div class="stat"><span>Data siswa contoh</span><strong>${students.length}</strong></div><div class="stat"><span>Permintaan konseling</span><strong>${requests.length}</strong></div><div class="stat"><span>Jadwal tercatat</span><strong>${schedules.length}</strong></div></div>`}
+function table(headers,rows){return rows.length?`<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`:`<div class="empty">Belum ada data.</div>`}
+function page(){let role=user.role;
+if(active==='Dashboard')return `${stats()}<div class="panel"><h3>Selamat datang, ${esc(user.name)}</h3><p>Gunakan menu di samping untuk mengakses fitur sesuai peran. Sistem mendukung pengajuan konseling, penjadwalan, pencatatan layanan, pemantauan, dan pelaporan.</p><div class="notice">Catatan: fitur ini adalah simulasi front-end. Data hanya tersimpan sementara selama halaman masih terbuka dan tidak dikirim ke server.</div></div><div class="panel"><h3>Alur layanan</h3><p>Pengajuan siswa → pemeriksaan Guru BK → penjadwalan → konseling → catatan dan tindak lanjut → laporan.</p></div>`;
+if(active==='Ajukan Konseling')return `<div class="panel"><h3>Formulir Pengajuan Konseling</h3><div class="field"><label>Topik umum</label><select id="topic"><option>Akademik / belajar</option><option>Pergaulan</option><option>Rencana pendidikan</option><option>Pengembangan diri</option><option>Lainnya</option></select></div><div class="field"><label>Waktu yang diinginkan</label><input id="wish" type="date"></div><div class="field"><label>Catatan singkat (hindari detail sensitif)</label><textarea id="detail" placeholder="Tuliskan kebutuhan secara umum"></textarea></div><button onclick="addRequest()">Kirim pengajuan</button></div>`;
+if(active==='Permintaan Konseling')return `<div class="panel"><h3>Daftar Permintaan</h3>${table(['Siswa','Topik','Tanggal pilihan','Status','Tindakan'],requests.map((r,i)=>[esc(r.student),esc(r.topic),esc(r.date||'-'),esc(r.status),`<button onclick="scheduleReq(${i})">Jadwalkan</button>`]))}</div>`;
+if(active==='Jadwal'||active==='Jadwal Saya')return `<div class="panel"><h3>${active}</h3>${table(['Siswa','Tanggal','Waktu','Status'],schedules.filter(s=>role!=='Siswa'||s.student===user.name).map(s=>[esc(s.student),esc(s.date),esc(s.time),'<span class="tag">Terjadwal</span>']))}</div>`;
+if(active==='Data Siswa')return `<div class="panel"><h3>Data Siswa (Contoh)</h3><p class="small">Data di bawah hanya data fiktif untuk demonstrasi.</p>${table(['ID','Nama','Kelas'],students.map(s=>[esc(s.id),esc(s.name),esc(s.kelas)]))}<h3 style="margin-top:20px">Tambah Data Siswa</h3><div class="row"><div class="field"><label>Nama</label><input id="sn"></div><div class="field"><label>Kelas</label><input id="sk"></div><button onclick="addStudent()">Tambah</button></div></div>`;
+if(active==='Catatan Konseling')return `<div class="panel"><h3>Catatan Layanan (Demo)</h3><div class="notice">Jangan gunakan catatan nyata. Dalam sistem produksi, catatan hanya boleh dilihat pihak yang berwenang.</div><div class="field"><label>Nama siswa</label><input id="nn" placeholder="Nama contoh"></div><div class="field"><label>Ringkasan tindak lanjut umum</label><textarea id="nt" placeholder="Tuliskan tindak lanjut umum, tanpa informasi sensitif"></textarea></div><button onclick="addNote()">Simpan catatan demo</button><h3 style="margin-top:22px">Catatan tersimpan di sesi ini</h3>${table(['Siswa','Ringkasan'],notes.map(n=>[esc(n.name),esc(n.text)]))}</div>`;
+if(active==='Kasus & Tindak Lanjut')return `<div class="panel"><h3>Pemantauan Kasus</h3><p>Gunakan bagian ini untuk merencanakan tindak lanjut dan rujukan sesuai prosedur sekolah.</p><div class="field"><label>Rencana tindak lanjut</label><textarea id="follow" placeholder="Contoh: jadwalkan pertemuan lanjutan"></textarea></div><button onclick="saveNotice()">Simpan pengingat</button><ul>${notices.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`;
+if(active==='Laporan')return `<div class="panel"><h3>Ringkasan Layanan</h3>${stats()}<p>Total catatan demo: <b>${notes.length}</b>. Laporan ini bersifat umum dan tidak menampilkan isi konseling sensitif.</p><button onclick="downloadReport()">Unduh laporan CSV</button></div>`;
+if(active==='Privasi')return `<div class="panel"><h3>Pengaturan Privasi dan Etika</h3><ul><li>Gunakan autentikasi dan hak akses sesuai peran.</li><li>Batasi catatan konseling hanya untuk pihak berwenang.</li><li>Lindungi kata sandi dan data dengan enkripsi pada sistem produksi.</li><li>Lakukan pencadangan dan pencatatan aktivitas.</li><li>Bagikan informasi hanya sesuai kebijakan dan persetujuan yang berlaku.</li></ul><p class="small">Pengaturan di halaman ini bersifat informasi; belum terhubung ke server.</p></div>`;
+if(active==='Rujukan Siswa')return `<div class="panel"><h3>Rujukan kepada Guru BK</h3><div class="field"><label>Nama siswa (contoh)</label><input id="refname"></div><div class="field"><label>Alasan umum rujukan</label><textarea id="refreason" placeholder="Tulis informasi minimum yang diperlukan"></textarea></div><button onclick="referStudent()">Kirim rujukan</button></div>`;
+if(active==='Informasi Relevan'||active==='Informasi Perkembangan')return `<div class="panel"><h3>Informasi yang Diizinkan</h3><p>Informasi perkembangan siswa hanya dapat dibagikan sesuai kebijakan sekolah, persetujuan yang diperlukan, dan hak akses pengguna. Catatan pribadi konseling tidak ditampilkan di halaman ini.</p><div class="notice">Tidak ada data perkembangan yang ditampilkan pada demo ini.</div></div>`;
+if(active==='Notifikasi')return `<div class="panel"><h3>Notifikasi</h3>${notices.length?`<ul>${notices.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`:'<div class="empty">Belum ada notifikasi.</div>'}</div>`;
+return `<div class="panel"><p>Menu tersedia untuk peran ${esc(role)}.</p></div>`}
+function addRequest(){requests.push({student:user.name,topic:document.getElementById('topic').value,date:document.getElementById('wish').value,status:'Menunggu'});notices.push('Pengajuan konseling baru dari '+user.name);alert('Pengajuan demo tersimpan.');go('Dashboard')}
+function scheduleReq(i){let date=prompt('Tanggal jadwal (YYYY-MM-DD):');if(!date)return;let time=prompt('Waktu (contoh 10:00):','10:00')||'10:00';schedules.push({student:requests[i].student,date,time});requests[i].status='Terjadwal';notices.push('Jadwal konseling '+requests[i].student+' ditetapkan pada '+date+' '+time);render()}
+function addStudent(){let n=document.getElementById('sn').value.trim(),k=document.getElementById('sk').value.trim();if(!n||!k)return alert('Lengkapi nama dan kelas.');students.push({id:'S-'+String(students.length+1).padStart(3,'0'),name:n,kelas:k});render()}
+function addNote(){let n=document.getElementById('nn').value.trim(),t=document.getElementById('nt').value.trim();if(!n||!t)return alert('Lengkapi formulir.');notes.push({name:n,text:t});render()}
+function saveNotice(){let v=document.getElementById('follow').value.trim();if(!v)return alert('Isi rencana tindak lanjut.');notices.push(v);render()}
+function referStudent(){let n=document.getElementById('refname').value.trim(),r=document.getElementById('refreason').value.trim();if(!n||!r)return alert('Lengkapi formulir.');notices.push('Rujukan: '+n+' — '+r);alert('Rujukan demo dicatat pada notifikasi.');go('Dashboard')}
+function downloadReport(){let rows=[['Siswa','Topik','Tanggal pilihan','Status'],...requests.map(r=>[r.student,r.topic,r.date,r.status])];let csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='laporan-layanan-bk-demo.csv';a.click();URL.revokeObjectURL(a.href)}
+login();
+</script>
+</body>
+</html>
